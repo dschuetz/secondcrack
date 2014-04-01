@@ -12,6 +12,7 @@ class Post
     public static $blog_title = 'Untitled Blog';
     public static $blog_url   = 'http://no-idea.com/';
     public static $blog_description = 'About my blog.';
+    public static $pages_in_folders = false;
     
     public $source_filename = '';
     public $title = '';
@@ -108,7 +109,7 @@ class Post
         }
         
         $this->body = isset($segments[0]) ? $segments[0] : '';
-        
+
         $filename = basename($source_filename);
         $filename_datestr = substr($filename, 0, 8);
         if (is_numeric($filename_datestr)) {
@@ -220,8 +221,21 @@ class Post
         );
         $output_html = $t->outputHTML();
 
-        if (! file_exists(Updater::$dest_path)) mkdir_as_parent_owner(Updater::$dest_path, 0755, true);
-        file_put_contents_as_dir_owner(Updater::$dest_path . '/' . $this->slug, $output_html);
+#
+# support for pages in subfolders 
+# from github.com/jmartindf
+#
+#        if (! file_exists(Updater::$dest_path)) mkdir_as_parent_owner(Updater::$dest_path, 0755, true);
+#        file_put_contents_as_dir_owner(Updater::$dest_path . '/' . $this->slug, $output_html);
+        $dest_path = Updater::$dest_path;
+
+        if(Post::$pages_in_folders) {
+          $dest_path .= '/' . substr(dirname($this->source_filename),strlen(Updater::$source_path)+7); // strip out initial "/pages" + 1 for 0 based counting
+          // error_log("Destination path is: ".$dest_path);
+        }
+        if (! file_exists($dest_path)) mkdir_as_parent_owner($dest_path, 0755, true);
+        file_put_contents_as_dir_owner($dest_path . '/' . $this->slug, $output_html);
+
     }
     
     public function write_permalink_page($draft = false)
@@ -310,6 +324,7 @@ class Post
                 'next_page_url' => $sequence < $total_sequences ? $dest_uri . '-' . ($sequence + 1) : false,
                 'archives' => $archive_array ? $archive_array : array(),
             );
+fwrite(STDERR, 'Post: title - ' . $t->content['page-title']);
             $output_html = $t->outputHTML();
             
             $output_path = dirname($new_dest_path);
