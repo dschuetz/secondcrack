@@ -5,6 +5,7 @@
         <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml" />
         <meta name="viewport" content="width=device-width" />
         <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"/>
+        <link rel="stylesheet" href="/main.css"/>
         <title><?= 
             (isset($content['post']) ? h($content['post']['post-title']) . ' &ndash; ' : '') . 
             ($content['page-title'] != $content['blog-title'] && (
@@ -16,6 +17,7 @@
         <? if ($content['page-type'] != 'frontpage' && $content['page-type'] != 'page' && $content['page-type'] != 'post') { ?>
             <meta name="robots" content="noindex"/>
         <? } ?>
+
     </head>
     <body>
         <div id="mastheadbackground">&nbsp;</div>
@@ -23,9 +25,28 @@
         <section id="posts">
 
             <div id="masthead">
-                <h1><a href="/">My Site</a></h1>
+                <h1><a href="/">DarthNull.org</a>
+            </div>
+            <div id="topicon" class="fa_normal">
+		        <img src="/media/GandalfIcon2.jpg" width="125" height="125"/>
+            </div>
 
-                <p id="description">Who am I?</p>
+            <div id="fullabout" class="fa_normal">
+                <p id="description">
+                Hello! I'm <a href="/about" rel="author">David Schuetz</a>, 
+                or <a href="https://twitter.com/DarthNull">@DarthNull</a> on Twitter.I
+                <br/>Insert short 5-word bio here.
+                </p>
+
+                <nav>
+                    <a href="/about">About</a>
+                    &bull;
+                    <a href="/tagged-presentations">Presentations</a>
+                    &bull;
+                    <a href="/tagged-bestof">Best Of</a>
+                    &bull;
+                    <a href="https://twitter.com/DarthNull">Twitter</a>
+                </nav>
             </div>
 
             <? if ($content['page-type'] == 'page') { ?>
@@ -49,6 +70,19 @@
                                 &bull;
                                 <a class="permalink" title="Permalink" href="<?= h($post['post-permalink']) ?>">∞</a>
                             </p>
+                            <!-- put tags here -->
+                            <? $first = true;
+                               foreach ($post['post-tags'] as $tag) {
+                                 $tagname = $tag['post-tag'];
+                                 if ($first) {
+                                    $first = false;
+                                 } else {
+                                   echo('&bull;');
+                                 }
+                            ?>
+                                <a href="/tagged-<?= $tagname ?>"><?= $tagname ?></a>
+                            <? } ?>
+
                         </header>
                     
                         <?= $post['post-body'] ?>
@@ -77,13 +111,18 @@
             <? } ?>
             
             <footer>
-                <p>&copy; 2006-2012 Marco Arment. All rights reserved.</p>
+                <p>Content &copy; 2010-2014 David Schuetz. All rights reserved.</p>
                 <p>
                     <a href="/rss.xml">RSS feed</a>.
-                    Powered by <a href="http://www.marco.org/secondcrack">Second Crack</a>.
+                    Powered by <a href="https://github.com/marcoarment/secondcrack">Second Crack</a>, written by <a href="http://marco.org">Marco Arment</a>.
                 </p>
 
             </footer>
+
+
+
+
+
         </section>
     </body>
 </html>
