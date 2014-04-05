@@ -36,6 +36,7 @@ class Updater
     public static $permalink_template = 'main.php';
     public static $tag_page_template  = 'main.php';
     public static $type_page_template = 'main.php';
+    public static $list_page_template = 'list.php';
     public static $page_template      = 'main.php';
     
     public static $api_blog_id = 1;
@@ -50,11 +51,12 @@ class Updater
     private static $types_to_be_updated = array();
     private static $posts_to_be_updated = array();
     private static $pages_to_be_updated = array();
+    private static $lists_to_be_updated = array();
         
-    public static function posts_in_year_month($year, $month, $require_tag = false, $require_type = false)
+    public static function posts_in_year_month($year, $month, $require_tag = false, $require_type = false, $require_list = false)
     {
         $month = str_pad($month, 2, '0', STR_PAD_LEFT);
-        $cache_fname = self::$cache_path . "/posts-$year-$month-" . md5($require_tag . ' ' . $require_type);
+        $cache_fname = self::$cache_path . "/posts-$year-$month-" . md5($require_tag . ' ' . $require_type . ' ' . $require_list);
         if (file_exists($cache_fname)) {
             $files = unserialize(file_get_contents($cache_fname));
         } else {
@@ -66,7 +68,7 @@ class Updater
                 if (substr($fname, -(strlen(self::$post_extension))) != self::$post_extension) continue;
 
                 // Tag/type filtering
-                list($ignored_hash, $type, $tags) = explode('|', $info, 3);
+                list($ignored_hash, $type, $tags, $lists) = explode('|', $info, 4);
                 $include = true;
                 if ($require_type) {
                     if ($require_type[0] == '!' && $type == $require_type) $include = false;
@@ -76,7 +78,12 @@ class Updater
                     if ($require_tag[0] == '!' && in_array($require_tag, Post::parse_tag_str($tags))) $include = false;
                     else if ($require_tag[0] != '!' && ! in_array($require_tag, Post::parse_tag_str($tags))) $include = false;
                 }
+                if ($require_list) {
+                    if ($require_list[0] == '!' && in_array(substr($require_list, 1), Post::parse_list_str($lists))) $include = false;
+                    else if ($require_list[0] != '!' && ! in_array($require_list, Post::parse_list_str($lists))) $include = false;
+                }
                 if (! $include) continue;
+                
 
                 list($y, $m, $d) = array_map('intval', array_slice(explode('/', $fname), -3, 3));
                 $d = intval(substr($d, 6));
@@ -94,10 +101,10 @@ class Updater
         return $files;
     }
     
-    public static function post_filenames_in_year_month($year, $month, $require_tag = false, $require_type = false)
+    public static function post_filenames_in_year_month($year, $month, $require_tag = false, $require_type = false, $require_list = false)
     {
         $out = array();
-        foreach (self::posts_in_year_month($year, $month, $require_tag, $require_type) as $day) {
+        foreach (self::posts_in_year_month($year, $month, $require_tag, $require_type, $require_list) as $day) {
             foreach ($day as $filename) $out[] = $filename;
         }
         return $out;
@@ -186,9 +193,11 @@ class Updater
                         
                         $tags = '';
                         $type = '';
+                        $lists = '';
                         if ($parse_info_in_text_files && substr($fullpath, -(strlen(self::$post_extension))) == self::$post_extension) {
                             $post = new Post($fullpath);
                             $tags = implode(',', $post->tags);
+                            $lists = implode(',', $post->lists);
                             $type = $post->type;
                             $expected_fname = $post->expected_source_filename();
                             if ($expected_fname != $fullpath && ! $post->is_draft) {
@@ -197,7 +206,7 @@ class Updater
                             }
                         }
                         
-                        $out[$fullpath] = $new_stat_prefix . '|' . $type . '|' . $tags;
+                        $out[$fullpath] = $new_stat_prefix . '|' . $type . '|' . $tags . '|' . $lists;
                     }
                 }
                 closedir($dh);
@@ -234,7 +243,7 @@ class Updater
         return $changed;
     }
     
-    public static function most_recent_post_filenames($limit = 0, $require_tag = false, $require_type = false)
+    public static function most_recent_post_filenames($limit = 0, $require_tag = false, $require_type = false, $require_list = false)
     {
         $cache_fname = self::$cache_path . '/dir-' . md5(self::$source_path . '/posts');
         if (! file_exists($cache_fname)) throw new Exception('Cache files not found, expected in [' . self::$cache_path . ']');
@@ -244,8 +253,9 @@ class Updater
         $posts = array();
         foreach ($fileinfo as $filename => $info) {
             if (substr($filename, -(strlen(self::$post_extension))) != self::$post_extension) continue;
-            list($ignored_hash, $type, $tags) = explode('|', $info, 3);
+            list($ignored_hash, $type, $tags, $lists) = explode('|', $info, 4);
             $include = true;
+
             if ($require_type) {
                 if ($require_type[0] == '!' && $type == substr($require_type, 1)) $include = false;
                 else if ($require_type[0] != '!' && $type != $require_type) $include = false;
@@ -254,6 +264,11 @@ class Updater
             if ($require_tag) {
                 if ($require_tag[0] == '!' && in_array(substr($require_tag, 1), Post::parse_tag_str($tags))) $include = false;
                 else if ($require_tag[0] != '!' && ! in_array($require_tag, Post::parse_tag_str($tags))) $include = false;
+            }
+            
+            if ($require_list) {
+                if ($require_list[0] == '!' && in_array(substr($require_list, 1), Post::parse_list_str($lists))) $include = false;
+                else if ($require_list[0] != '!' && ! in_array($require_list, Post::parse_list_str($lists))) $include = false;
             }
             
             if (! $include) continue;
@@ -462,14 +477,17 @@ class Updater
             
             if (substr($filename, -(strlen(self::$post_extension))) == self::$post_extension) {
                 list($old_info, $new_info) = $info;
-                list($old_hash, $old_type, $old_tags) = explode('|', $old_info, 3);
-                list($new_hash, $new_type, $new_tags) = explode('|', $new_info, 3);
+                list($old_hash, $old_type, $old_tags, $old_lists) = explode('|', $old_info, 4);
+                list($new_hash, $new_type, $new_tags, $new_lists) = explode('|', $new_info, 4);
 
                 if ($old_type) self::$types_to_be_updated[$old_type] = true;
                 if ($new_type) self::$types_to_be_updated[$new_type] = true;
 
                 foreach (Post::parse_tag_str($old_tags) as $tag) self::$tags_to_be_updated[$tag] = true;
                 foreach (Post::parse_tag_str($new_tags) as $tag) self::$tags_to_be_updated[$tag] = true;
+
+                foreach (Post::parse_list_str($old_lists) as $list) self::$lists_to_be_updated[$list] = true;
+                foreach (Post::parse_list_str($new_lists) as $list) self::$lists_to_be_updated[$list] = true;
             }
             
             $yearpos = strpos($filename, '/posts/') + 7;
@@ -508,6 +526,7 @@ class Updater
 
                 self::set_has_posts_for_month($post->year, $post->month);
                 foreach ($post->tags as $tag) self::set_has_posts_for_month($post->year, $post->month, 'tagged-' . $tag);
+                foreach ($post->lists as $list) self::set_has_posts_for_month($post->year, $post->month, 'list-' . $list);
                 if ($post->type) self::set_has_posts_for_month($post->year, $post->month, 'type-' . $post->type);
 
             } else {
@@ -544,7 +563,7 @@ class Updater
             return self::RESEQUENCED_POSTS;
         }
         
-        if (! self::$index_to_be_updated) self::$index_to_be_updated = self::$index_months_to_be_updated || self::$tags_to_be_updated || self::$types_to_be_updated || self::$posts_to_be_updated;
+        if (! self::$index_to_be_updated) self::$index_to_be_updated = self::$index_months_to_be_updated || self::$tags_to_be_updated || self::$types_to_be_updated || self::$posts_to_be_updated || self::$lists_to_be_updated;
 
         if (self::$index_to_be_updated) {
             error_log("Updating frontpage...");
@@ -689,6 +708,47 @@ class Updater
                     $posts,
                     self::$type_page_template,
                     self::archive_array('type-' . $type)
+                );
+            }
+        }
+
+        foreach (self::$lists_to_be_updated as $list => $x) {
+            if (! strlen($list)) continue;
+            error_log("Updating list: $list");
+            self::$changes_were_written = true;
+
+            Post::write_index(
+                self::$dest_path . "/list-$list.html", 
+                Post::$blog_title, 
+                'list', 
+                Post::from_files(self::most_recent_post_filenames(self::$frontpage_post_limit, self::$archive_tag_filter, self::$archive_type_filter, $list)),
+                self::$list_page_template,
+                self::archive_array('list-' . $list)
+            );
+
+            Post::write_index(
+                self::$dest_path . "/list-$list.xml", 
+                Post::$blog_title, 
+                'list', 
+                Post::from_files(self::most_recent_post_filenames(self::$rss_post_limit, self::$archive_tag_filter, self::$archive_type_filter, $list)),
+                self::$rss_template,
+                self::archive_array('list-' . $list)
+            );
+
+            $months_with_posts = self::months_with_posts('list-' . $list);
+            foreach (self::$index_months_to_be_updated as $ym => $x) {
+                list($year, $month) = explode('-', $ym);
+                if (! isset($months_with_posts[$year]) || ! isset($months_with_posts[$year][intval($month)])) continue;
+                error_log("Updating month index: $ym for list: $list");
+                $posts = Post::from_files(self::post_filenames_in_year_month($year, $month, self::$archive_tag_filter, self::$archive_type_filter, $list));
+                $ts = mktime(0, 0, 0, $month, 15, $year);
+                Post::write_index(
+                    self::$dest_path . "/$year/$month/list-$list.html",
+                    date('F Y', $ts),
+                    'list',
+                    $posts,
+                    self::$list_page_template,
+                    self::archive_array('list-' . $list)
                 );
             }
         }

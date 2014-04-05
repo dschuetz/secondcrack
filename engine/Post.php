@@ -23,6 +23,7 @@ class Post
     public $type = '';
     public $headers = array();
     public $tags = array();
+    public $lists = array();
     public $body = '';
 
     public $year;
@@ -99,6 +100,8 @@ class Post
                     $this->type = str_replace('|', ' ', $fields[1]);
                 } else if ($fname == 'published') {
                     $this->timestamp = strtotime($fields[1]);
+                } else if ($fname == 'lists') {
+                    $this->lists = self::parse_list_str($fields[1]);
                 } else {
                     $this->headers[$fname] = $fields[1];
                 }
@@ -165,6 +168,7 @@ class Post
         $source = $this->title . "\n" . str_repeat('=', max(10, min(40, strlen($this->title)))) . "\n";
         if ($this->type) $out_headers['type'] = $this->type;
         if ($this->tags) $out_headers['tags'] = implode(', ', $this->tags);
+        if ($this->lists) $out_headers['lists'] = implode(', ', $this->lists);
         foreach ($out_headers as $k => $v) $source .= ucfirst($k) . ': ' . $v . "\n";
         $source .= "\n" . $this->body;
         return $source;
@@ -181,6 +185,8 @@ class Post
     {
         $tags = array();
         foreach ($this->tags as $tag) { $tags[$tag] = array('post-tag' => $tag); }
+        $lists = array();
+        foreach ($this->lists as $list) { $lists[$list] = array('post-lists' => $list); }
         
         // Convert relative image references to absolute so index pages work
         $base_uri = '/' . $this->year . '/' . str_pad($this->month, 2, '0', STR_PAD_LEFT) . '/' . str_pad($this->day, 2, '0', STR_PAD_LEFT);
@@ -194,6 +200,7 @@ class Post
                 'post-rss-date' => date('D, d M Y H:i:s T', $this->timestamp),
                 'post-body' => $this->rendered_body(),
                 'post-tags' => $tags,
+                'post-lists' => $lists,
                 'post-type' => $this->type,
                 'post-permalink' => $base_uri . '/' . $this->slug,
                 'post-permalink-or-link' => isset($this->headers['link']) && $this->headers['link'] ? $this->headers['link'] : $base_uri . '/' . $this->slug,
@@ -278,6 +285,7 @@ class Post
 
         $t = new Template($template);
         $t->content = array(
+            'page-slug' => basename($dest_path, '.html'),
             'page-title' => html_entity_decode(SmartyPants($title), ENT_QUOTES, 'UTF-8'),
             'blog-title' => html_entity_decode(SmartyPants(self::$blog_title), ENT_QUOTES, 'UTF-8'),
             'blog-url' => self::$blog_url,
@@ -314,6 +322,7 @@ class Post
 
             $t = new Template($template);
             $t->content = array(
+                'page-slug' => basename($dest_path, '.html'),
                 'page-title' => html_entity_decode(SmartyPants($title), ENT_QUOTES, 'UTF-8'),
                 'blog-title' => html_entity_decode(SmartyPants(self::$blog_title), ENT_QUOTES, 'UTF-8'),
                 'blog-url' => self::$blog_url,
@@ -344,5 +353,16 @@ fwrite(STDERR, 'Post: title - ' . $t->content['page-title']);
         $tags = array_unique(array_filter($tags, 'strlen'));
         sort($tags);
         return $tags;
+    }
+
+    public static function parse_list_str($list_str)
+    {
+        // Lists are comma-separated, and any spaces between multiple words in a tag will be converted to underscores for URLs
+        if (! strlen($list_str)) return array();
+        $lists = array_map('trim', explode(',', strtolower($list_str)));
+        $lists = str_replace(' ', '_', $lists);
+        $lists = array_unique(array_filter($lists, 'strlen'));
+        sort($lists);
+        return $lists;
     }
 }
