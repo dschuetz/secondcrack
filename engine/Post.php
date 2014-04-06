@@ -20,7 +20,8 @@ class Post
     public $publish_now = false;
     public $timestamp = 0;
     public $slug = '';
-    public $type = '';
+    public $type = 'post';
+    public $is_link = false;
     public $headers = array();
     public $tags = array();
     public $lists = array();
@@ -106,7 +107,7 @@ class Post
                     $this->headers[$fname] = $fields[1];
                 }
                 
-                if (isset($this->headers['link'])) $this->type = 'link';
+                if (isset($this->headers['link'])) $this->is_link = true;
             }
             array_shift($segments);
         }
@@ -202,6 +203,7 @@ class Post
                 'post-tags' => $tags,
                 'post-lists' => $lists,
                 'post-type' => $this->type,
+                'is-link' => $this->is_link,
                 'post-permalink' => $base_uri . '/' . $this->slug,
                 'post-permalink-or-link' => isset($this->headers['link']) && $this->headers['link'] ? $this->headers['link'] : $base_uri . '/' . $this->slug,
                 'post-absolute-permalink' => rtrim(self::$blog_url, '/') . $base_uri . '/' . $this->slug,
@@ -328,12 +330,12 @@ class Post
                 'blog-url' => self::$blog_url,
                 'blog-description' => html_entity_decode(SmartyPants(self::$blog_description), ENT_QUOTES, 'UTF-8'),
                 'page-type' => $type,
+                'is-link' => $this->is_link,
                 'posts' => $posts_data,
                 'previous_page_url' => $sequence != 1 ? ($sequence == 2 ? $dest_uri : $dest_uri . '-' . ($sequence - 1)) : false,
                 'next_page_url' => $sequence < $total_sequences ? $dest_uri . '-' . ($sequence + 1) : false,
                 'archives' => $archive_array ? $archive_array : array(),
             );
-fwrite(STDERR, 'Post: title - ' . $t->content['page-title']);
             $output_html = $t->outputHTML();
             
             $output_path = dirname($new_dest_path);

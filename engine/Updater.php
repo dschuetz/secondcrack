@@ -14,28 +14,31 @@ class Updater
     // Without it, drafts only reside in the (source)/drafts/_previews folder 
     //  and are not accessible publicly.
     public static $write_public_drafts = false;
-
-    public static $frontpage_post_limit = 20;
+// DJS - looks like the "*_type_filter" takes tags, not types. 
+// and so it filters based on tags (singular, not a list) for the given
+// type-based page (at the front page or within a monthly archive))
+// this doesn't seem to filter by *type* for *type* based pages.
+    public static $frontpage_post_limit = 5;
     public static $frontpage_template = 'main.php';
     public static $frontpage_tag_filter = '!rss-only';
-    public static $frontpage_type_filter = false;
+    public static $frontpage_type_filter = 'post';   // be nice if took a list
     public static $frontpage_paginate = false;
 
     public static $rss_post_limit = 20;
     public static $rss_template = 'rss.php';
     public static $rss_tag_filter = '!site-only';
-    public static $rss_type_filter = false;
+    public static $rss_type_filter = '!reference, crosspost';
 
     public static $archive_month_template = 'main.php';
     public static $archive_year_template = 'main.php';
     public static $archive_tag_filter = '!rss-only';
-    public static $archive_type_filter = '!ad';
+    public static $archive_type_filter = 'post';   // be nice if took a list
     
     public static $tag_page_post_limit = 20;
     
     public static $permalink_template = 'main.php';
-    public static $tag_page_template  = 'main.php';
-    public static $type_page_template = 'main.php';
+    public static $tag_page_template  = 'tag.php';
+    public static $type_page_template = 'type.php';
     public static $list_page_template = 'list.php';
     public static $page_template      = 'main.php';
     
@@ -628,7 +631,7 @@ class Updater
                 self::$dest_path . "/tagged-$tag", 
                 Post::$blog_title, 
                 'tag', 
-                Post::from_files(self::most_recent_post_filenames(0, $tag, self::$archive_tag_filter)),
+                Post::from_files(self::most_recent_post_filenames(0, $tag, self::$archive_tag_filter, self::$archive_type_filter)),
                 self::$tag_page_template,
                 self::archive_array(),
                 self::$tag_page_post_limit
@@ -638,7 +641,7 @@ class Updater
                 self::$dest_path . "/tagged-$tag.html", 
                 Post::$blog_title, 
                 'tag', 
-                Post::from_files(self::most_recent_post_filenames(self::$frontpage_post_limit, $tag, self::$archive_tag_filter)),
+                Post::from_files(self::most_recent_post_filenames(0, $tag, self::$archive_tag_filter)),
                 self::$tag_page_template,
                 self::archive_array('tagged-' . $tag),
                 $seq_count
@@ -680,7 +683,7 @@ class Updater
                 self::$dest_path . "/type-$type.html", 
                 Post::$blog_title, 
                 'type', 
-                Post::from_files(self::most_recent_post_filenames(self::$frontpage_post_limit, self::$archive_type_filter, $type)),
+                Post::from_files(self::most_recent_post_filenames(0, self::$archive_tag_filter, $type)),
                 self::$type_page_template,
                 self::archive_array('type-' . $type)
             );
@@ -689,7 +692,7 @@ class Updater
                 self::$dest_path . "/type-$type.xml", 
                 Post::$blog_title, 
                 'type', 
-                Post::from_files(self::most_recent_post_filenames(self::$rss_post_limit, self::$archive_type_filter, $type)),
+                Post::from_files(self::most_recent_post_filenames(self::$rss_post_limit, self::$archive_tag_filter, $type)),
                 self::$rss_template,
                 self::archive_array('type-' . $type)
             );
@@ -721,7 +724,7 @@ class Updater
                 self::$dest_path . "/list-$list.html", 
                 Post::$blog_title, 
                 'list', 
-                Post::from_files(self::most_recent_post_filenames(self::$frontpage_post_limit, self::$archive_tag_filter, self::$archive_type_filter, $list)),
+                Post::from_files(self::most_recent_post_filenames(0, false, false, $list)),
                 self::$list_page_template,
                 self::archive_array('list-' . $list)
             );
@@ -730,7 +733,7 @@ class Updater
                 self::$dest_path . "/list-$list.xml", 
                 Post::$blog_title, 
                 'list', 
-                Post::from_files(self::most_recent_post_filenames(self::$rss_post_limit, self::$archive_tag_filter, self::$archive_type_filter, $list)),
+                Post::from_files(self::most_recent_post_filenames(0, false, false, $list)),
                 self::$rss_template,
                 self::archive_array('list-' . $list)
             );
@@ -740,7 +743,7 @@ class Updater
                 list($year, $month) = explode('-', $ym);
                 if (! isset($months_with_posts[$year]) || ! isset($months_with_posts[$year][intval($month)])) continue;
                 error_log("Updating month index: $ym for list: $list");
-                $posts = Post::from_files(self::post_filenames_in_year_month($year, $month, self::$archive_tag_filter, self::$archive_type_filter, $list));
+                $posts = Post::from_files(self::post_filenames_in_year_month($year, $month, false, false, $list));
                 $ts = mktime(0, 0, 0, $month, 15, $year);
                 Post::write_index(
                     self::$dest_path . "/$year/$month/list-$list.html",
