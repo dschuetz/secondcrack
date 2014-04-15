@@ -455,6 +455,9 @@ class Updater
         if (! file_exists(self::$dest_path)) mkdir_as_parent_owner(self::$dest_path, 0755, true);
         if (! file_exists(self::$dest_path . '/.htaccess')) copy(dirname(__FILE__) . '/default.htaccess', self::$dest_path . '/.htaccess');
 
+	if (! file_exists(self::$dest_path . '/tag')) mkdir_as_parent_owner(self::$dest_path . '/tag', 0755, true);
+	if (! file_exists(self::$dest_path . '/type')) mkdir_as_parent_owner(self::$dest_path . '/type', 0755, true);
+	if (! file_exists(self::$dest_path . '/list')) mkdir_as_parent_owner(self::$dest_path . '/list', 0755, true);
         if (! file_exists(self::$source_path . '/drafts/_publish-now')) mkdir_as_parent_owner(self::$source_path . '/drafts/_publish-now', 0755, true);
         if (! file_exists(self::$source_path . '/drafts/_previews')) mkdir_as_parent_owner(self::$source_path . '/drafts/_previews', 0755, true);
         if (! file_exists(self::$source_path . '/pages')) mkdir_as_parent_owner(self::$source_path . '/pages', 0755, true);
@@ -528,7 +531,7 @@ class Updater
                 $post->write_permalink_page();
 
                 self::set_has_posts_for_month($post->year, $post->month);
-                foreach ($post->tags as $tag) self::set_has_posts_for_month($post->year, $post->month, 'tagged-' . $tag);
+                foreach ($post->tags as $tag) self::set_has_posts_for_month($post->year, $post->month, $tag);
                 foreach ($post->lists as $list) self::set_has_posts_for_month($post->year, $post->month, 'list-' . $list);
                 if ($post->type) self::set_has_posts_for_month($post->year, $post->month, 'type-' . $post->type);
 
@@ -628,7 +631,7 @@ class Updater
             self::$changes_were_written = true;
 
             $seq_count = Post::write_index_sequence(
-                self::$dest_path . "/tagged-$tag", 
+                self::$dest_path . "/tag/$tag", 
                 Post::$blog_title, 
                 'tag', 
                 Post::from_files(self::most_recent_post_filenames(0, $tag, self::$archive_tag_filter, self::$archive_type_filter)),
@@ -638,25 +641,25 @@ class Updater
             );
 
             Post::write_index(
-                self::$dest_path . "/tagged-$tag.html", 
+                self::$dest_path . "/tag/$tag.html", 
                 Post::$blog_title, 
                 'tag', 
                 Post::from_files(self::most_recent_post_filenames(0, $tag, self::$archive_tag_filter)),
                 self::$tag_page_template,
-                self::archive_array('tagged-' . $tag),
+                self::archive_array($tag),
                 $seq_count
             );
 
             Post::write_index(
-                self::$dest_path . "/tagged-$tag.xml", 
+                self::$dest_path . "/tag/$tag.xml", 
                 Post::$blog_title, 
                 'tag', 
                 Post::from_files(self::most_recent_post_filenames(self::$rss_post_limit, $tag, self::$archive_tag_filter)),
                 self::$rss_template,
-                self::archive_array('tagged-' . $tag)
+                self::archive_array($tag)
             );
 
-            $months_with_posts = self::months_with_posts('tagged-' . $tag);
+            $months_with_posts = self::months_with_posts($tag);
             foreach (self::$index_months_to_be_updated as $ym => $x) {
                 list($year, $month) = explode('-', $ym);
                 if (! isset($months_with_posts[$year]) || ! isset($months_with_posts[$year][intval($month)])) continue;
@@ -664,12 +667,12 @@ class Updater
                 $posts = Post::from_files(self::post_filenames_in_year_month($year, $month, $tag, self::$archive_type_filter));
                 $ts = mktime(0, 0, 0, $month, 15, $year);
                 Post::write_index(
-                    self::$dest_path . "/$year/$month/tagged-$tag.html",
+                    self::$dest_path . "/$year/$month/$tag.html",
                     date('F Y', $ts),
                     'tag',
                     $posts,
                     self::$tag_page_template,
-                    self::archive_array('tagged-' . $tag)
+                    self::archive_array($tag)
                 );
             }
         }
@@ -680,7 +683,7 @@ class Updater
             self::$changes_were_written = true;
 
             Post::write_index(
-                self::$dest_path . "/type-$type.html", 
+                self::$dest_path . "/type/$type.html", 
                 Post::$blog_title, 
                 'type', 
                 Post::from_files(self::most_recent_post_filenames(0, self::$archive_tag_filter, $type)),
@@ -689,7 +692,7 @@ class Updater
             );
 
             Post::write_index(
-                self::$dest_path . "/type-$type.xml", 
+                self::$dest_path . "/type/$type.xml", 
                 Post::$blog_title, 
                 'type', 
                 Post::from_files(self::most_recent_post_filenames(self::$rss_post_limit, self::$archive_tag_filter, $type)),
@@ -705,7 +708,7 @@ class Updater
                 $posts = Post::from_files(self::post_filenames_in_year_month($year, $month, self::$archive_tag_filter, $type));
                 $ts = mktime(0, 0, 0, $month, 15, $year);
                 Post::write_index(
-                    self::$dest_path . "/$year/$month/type-$type.html",
+                    self::$dest_path . "/$year/$month/$type.html",
                     date('F Y', $ts),
                     'type',
                     $posts,
@@ -721,7 +724,7 @@ class Updater
             self::$changes_were_written = true;
 
             Post::write_index(
-                self::$dest_path . "/list-$list.html", 
+                self::$dest_path . "/list/$list.html", 
                 Post::$blog_title, 
                 'list', 
                 Post::from_files(self::most_recent_post_filenames(0, false, false, $list)),
@@ -730,7 +733,7 @@ class Updater
             );
 
             Post::write_index(
-                self::$dest_path . "/list-$list.xml", 
+                self::$dest_path . "/list/$list.xml", 
                 Post::$blog_title, 
                 'list', 
                 Post::from_files(self::most_recent_post_filenames(0, false, false, $list)),
@@ -746,7 +749,7 @@ class Updater
                 $posts = Post::from_files(self::post_filenames_in_year_month($year, $month, false, false, $list));
                 $ts = mktime(0, 0, 0, $month, 15, $year);
                 Post::write_index(
-                    self::$dest_path . "/$year/$month/list-$list.html",
+                    self::$dest_path . "/$year/$month/$list.html",
                     date('F Y', $ts),
                     'list',
                     $posts,
