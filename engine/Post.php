@@ -330,7 +330,6 @@ class Post
                 'blog-url' => self::$blog_url,
                 'blog-description' => html_entity_decode(SmartyPants(self::$blog_description), ENT_QUOTES, 'UTF-8'),
                 'page-type' => $type,
-                'is-link' => $this->is_link,
                 'posts' => $posts_data,
                 'previous_page_url' => $sequence != 1 ? ($sequence == 2 ? $dest_uri : $dest_uri . '-' . ($sequence - 1)) : false,
                 'next_page_url' => $sequence < $total_sequences ? $dest_uri . '-' . ($sequence + 1) : false,
@@ -355,6 +354,17 @@ class Post
         $tags = array_unique(array_filter($tags, 'strlen'));
         sort($tags);
         return $tags;
+    }
+
+    public static function parse_type_str($type_str)
+    {
+        // Types are comma-separated, and any spaces between multiple words in a tag will be converted to underscores for URLs
+        if (! strlen($type_str)) return array();
+        $types = array_map('trim', explode(',', strtolower($type_str)));
+        $types = str_replace(' ', '_', $types);
+        $types = array_unique(array_filter($types, 'strlen'));
+        sort($types);
+        return $types;
     }
 
     public static function parse_list_str($list_str)

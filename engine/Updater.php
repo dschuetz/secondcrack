@@ -18,10 +18,10 @@ class Updater
 // and so it filters based on tags (singular, not a list) for the given
 // type-based page (at the front page or within a monthly archive))
 // this doesn't seem to filter by *type* for *type* based pages.
-    public static $frontpage_post_limit = 5;
+    public static $frontpage_post_limit = 15;
     public static $frontpage_template = 'main.php';
     public static $frontpage_tag_filter = '!rss-only';
-    public static $frontpage_type_filter = 'post';   // be nice if took a list
+    public static $frontpage_type_filter = 'post,link';   // be nice if took a list
     public static $frontpage_paginate = false;
 
     public static $rss_post_limit = 20;
@@ -29,16 +29,16 @@ class Updater
     public static $rss_tag_filter = '!site-only';
     public static $rss_type_filter = '!reference, crosspost';
 
-    public static $archive_month_template = 'main.php';
-    public static $archive_year_template = 'main.php';
+    public static $archive_month_template = 'archive.php';
+    public static $archive_year_template = 'archive.php';
     public static $archive_tag_filter = '!rss-only';
-    public static $archive_type_filter = 'post';   // be nice if took a list
+    public static $archive_type_filter = '!page';   // be nice if took a list
     
-    public static $tag_page_post_limit = 20;
+    public static $tag_page_post_limit = 10000;
     
     public static $permalink_template = 'main.php';
-    public static $tag_page_template  = 'tag.php';
-    public static $type_page_template = 'type.php';
+    public static $tag_page_template  = 'list.php';
+    public static $type_page_template = 'list.php';
     public static $list_page_template = 'list.php';
     public static $page_template      = 'main.php';
     
@@ -75,7 +75,8 @@ class Updater
                 $include = true;
                 if ($require_type) {
                     if ($require_type[0] == '!' && $type == $require_type) $include = false;
-                    else if ($require_type[0] != '!' && $type != $require_type) $include = false;
+//                    else if ($require_type[0] != '!' && $type != $require_type) $include = false;
+                    else if ($require_type[0] != '!' && ! in_array($type, Post::parse_type_str($require_type))) $include = false;
                 }
                 if ($require_tag) {
                     if ($require_tag[0] == '!' && in_array($require_tag, Post::parse_tag_str($tags))) $include = false;
@@ -261,7 +262,8 @@ class Updater
 
             if ($require_type) {
                 if ($require_type[0] == '!' && $type == substr($require_type, 1)) $include = false;
-                else if ($require_type[0] != '!' && $type != $require_type) $include = false;
+//                else if ($require_type[0] != '!' && $type != $require_type) $include = false;
+                else if ($require_type[0] != '!' && ! in_array($type, Post::parse_type_str($require_type))) $include = false;
             }
             
             if ($require_tag) {
