@@ -26,6 +26,7 @@ class Post
     public $tags = array();
     public $lists = array();
     public $body = '';
+    public $desc = '';
 
     public $year;
     public $month;
@@ -103,6 +104,8 @@ class Post
                     $this->timestamp = strtotime($fields[1]);
                 } else if ($fname == 'lists') {
                     $this->lists = self::parse_list_str($fields[1]);
+                } else if ($fname == 'description') {
+                    $this->desc = $fields[1];
                 } else {
                     $this->headers[$fname] = $fields[1];
                 }
@@ -110,6 +113,9 @@ class Post
                 if (isset($this->headers['link'])) $this->is_link = true;
             }
             array_shift($segments);
+        }
+        if ($this->desc == '') {
+            $this->desc = $this->title;
         }
         
         $this->body = isset($segments[0]) ? $segments[0] : '';
@@ -170,6 +176,7 @@ class Post
         if ($this->type) $out_headers['type'] = $this->type;
         if ($this->tags) $out_headers['tags'] = implode(', ', $this->tags);
         if ($this->lists) $out_headers['lists'] = implode(', ', $this->lists);
+        if ($this->desc) $out_headers['description'] = $this->desc;
         foreach ($out_headers as $k => $v) $source .= ucfirst($k) . ': ' . $v . "\n";
         $source .= "\n" . $this->body;
         return $source;
@@ -195,6 +202,7 @@ class Post
         return array_merge(
             $this->headers,
             array(
+                'post-desc' => $this->desc,
                 'post-title' => html_entity_decode(SmartyPants($this->title), ENT_QUOTES, 'UTF-8'),
                 'post-slug' => $this->slug,
                 'post-timestamp' => $this->timestamp,
@@ -218,6 +226,7 @@ class Post
     {
         $t = new Template(Updater::$page_template);
         $t->content = array(
+            'page-desc' => $this->desc,
             'page-title' => html_entity_decode(SmartyPants($this->title), ENT_QUOTES, 'UTF-8'),
             'page-body' => $this->rendered_body(),
             'blog-title' => html_entity_decode(SmartyPants(self::$blog_title), ENT_QUOTES, 'UTF-8'),

@@ -18,7 +18,7 @@ $bookmarklet_code = <<<EOF
 var d=document,w=window,e=w.getSelection,k=d.getSelection,x=d.selection,s=(e?e():(k)?k():(x?x.createRange().text:0)),l=d.location,e=encodeURIComponent;w.location.href='TARGETadd-draft.php?u='+e(l.href)+'&t='+e(d.title)+'&s='+e(s)+'&EXTRA';
 EOF;
 
-$bookmarklet_code = str_replace('TARGET', (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/', trim($bookmarklet_code));
+$bookmarklet_code = str_replace('TARGET', (isset($_SERVER['HTTPS']) ? 'http://' : 'http://') . $_SERVER['HTTP_HOST'] . '/', trim($bookmarklet_code));
 
 if (! isset($_GET['u'])) {
     ?>
@@ -57,12 +57,14 @@ $draft_contents =
     $title . "\n" . 
     str_repeat('=', max(10, min(40, strlen($title)))) . "\n" .
     ($is_link ? "Link: " . $url . "\n" : '') .
+    ($is_link ? "Type: link\n" : '') .
     "publish-not-yet\n" .
     "\n" .
     $body
 ;
 
 $output_path = Updater::$source_path . '/drafts';
+#$output_path = '/home/dschuetz/darthnull.org/api-www/drafts';
 if (! file_exists($output_path)) die("Drafts path doesn't exist: [$output_path]");
 if (! is_writable($output_path)) die("Drafts path isn't writable: [$output_path]");
 
