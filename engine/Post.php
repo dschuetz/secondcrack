@@ -99,7 +99,7 @@ class Post
                 if ($fname == 'tags') {
                     $this->tags = self::parse_tag_str($fields[1]);
                 } else if ($fname == 'type') {
-                    $this->type = str_replace('|', ' ', $fields[1]);
+                    $this->type = str_replace('|', ' ', strtolower($fields[1]));
                 } else if ($fname == 'published') {
                     $this->timestamp = strtotime($fields[1]);
                 } else if ($fname == 'lists') {
