@@ -21,13 +21,13 @@ class Updater
     public static $frontpage_post_limit = 15;
     public static $frontpage_template = 'main.php';
     public static $frontpage_tag_filter = '!rss-only';
-    public static $frontpage_type_filter = 'post,link';   // be nice if took a list
+    public static $frontpage_type_filter = 'post,link,reference';   // be nice if took a list
     public static $frontpage_paginate = false;
 
     public static $rss_post_limit = 20;
     public static $rss_template = 'rss.php';
     public static $rss_tag_filter = '!site-only';
-    public static $rss_type_filter = '!reference, crosspost';
+    public static $rss_type_filter = '!crosspost';
 
     public static $archive_month_template = 'archive.php';
     public static $archive_year_template = 'archive.php';
